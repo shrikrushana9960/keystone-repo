@@ -93,7 +93,7 @@ var lists = {
         links: true,
         dividers: true
       }),
-      image: (0, import_fields.text)(),
+      image: (0, import_fields.image)({ storage: "my_local_images" }),
       // with this field, you can set a User as the author for a Post
       author: (0, import_fields.relationship)({
         // we could have used 'User', but then the relationship would only be 1-way
@@ -156,14 +156,22 @@ var lists = {
 // downloadImage.ts
 var import_axios = __toESM(require("axios"));
 var import_fs = __toESM(require("fs"));
-function downloadImage() {
+function downloadImage(context) {
   const apiUrl = `https://source.unsplash.com/random/?Cryptocurrency`;
   const imageName = Math.floor(Math.random() * 1e3);
   const imagePath = `./images/${imageName}.jpg`;
-  return import_axios.default.get(apiUrl, { responseType: "stream" }).then((response) => {
-    response.data.pipe(import_fs.default.createWriteStream(imagePath));
+  return import_axios.default.get(apiUrl, { responseType: "arraybuffer" }).then(async (response) => {
+    const buffer = Buffer.from(response.data, "binary");
+    let file = import_fs.default.writeFileSync(imagePath, buffer);
+    await context.db.Post.createOne({
+      data: {
+        title: "test",
+        image: { upload: file }
+      }
+    });
     return imagePath;
   }).catch((error) => {
+    console.log(error);
     return `Failed to download image ${imageName}`;
   });
 }
@@ -202,23 +210,14 @@ var session = (0, import_session.statelessSessions)({
 });
 
 // keystone.ts
+var baseUrl = "http://localhost:3000";
 var download = async (context) => {
   const downloadPromises = [];
   for (let i = 0; i < 5; i++) {
-    downloadPromises.push(downloadImage());
+    downloadPromises.push(downloadImage(context));
   }
   Promise.all(downloadPromises).then(async (results) => {
-    await Promise.all(
-      results.map(async (item) => {
-        await context.db.Post.createOne({
-          data: {
-            title: "test2",
-            image: item
-          }
-        });
-        console.log(item);
-      })
-    );
+    console.log(results);
   });
 };
 var keystone_default = withAuth(
@@ -232,7 +231,23 @@ var keystone_default = withAuth(
       onConnect: download
     },
     lists,
-    session
+    session,
+    storage: {
+      // The key here will be what is referenced in the image field
+      my_local_images: {
+        // Images that use this store will be stored on the local machine
+        kind: "local",
+        // This store is used for the image field type
+        type: "image",
+        // The URL that is returned in the Keystone GraphQL API
+        generateUrl: (path) => `${baseUrl}/images${path}`,
+        // The route that will be created in Keystone's backend to serve the images
+        serverRoute: {
+          path: "/images"
+        },
+        storagePath: "public/images"
+      }
+    }
   })
 );
 // Annotate the CommonJS export names for ESM import in node:

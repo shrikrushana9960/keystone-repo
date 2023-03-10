@@ -138,7 +138,7 @@ type Post {
   id: ID!
   title: String
   content: Post_content_Document
-  image: String
+  image: ImageFieldOutput
   author: User
   tags(where: TagWhereInput! = {}, orderBy: [TagOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TagWhereUniqueInput): [Tag!]
   tagsCount(where: TagWhereInput! = {}): Int
@@ -146,6 +146,22 @@ type Post {
 
 type Post_content_Document {
   document(hydrateRelationships: Boolean! = false): JSON!
+}
+
+type ImageFieldOutput {
+  id: ID!
+  filesize: Int!
+  width: Int!
+  height: Int!
+  extension: ImageExtension!
+  url: String!
+}
+
+enum ImageExtension {
+  jpg
+  png
+  webp
+  gif
 }
 
 input PostWhereUniqueInput {
@@ -158,7 +174,6 @@ input PostWhereInput {
   NOT: [PostWhereInput!]
   id: IDFilter
   title: StringFilter
-  image: StringFilter
   author: UserWhereInput
   tags: TagManyRelationFilter
 }
@@ -172,16 +187,22 @@ input TagManyRelationFilter {
 input PostOrderByInput {
   id: OrderDirection
   title: OrderDirection
-  image: OrderDirection
 }
 
 input PostUpdateInput {
   title: String
   content: JSON
-  image: String
+  image: ImageFieldInput
   author: UserRelateToOneForUpdateInput
   tags: TagRelateToManyForUpdateInput
 }
+
+input ImageFieldInput {
+  upload: Upload!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
 
 input UserRelateToOneForUpdateInput {
   create: UserCreateInput
@@ -204,7 +225,7 @@ input PostUpdateArgs {
 input PostCreateInput {
   title: String
   content: JSON
-  image: String
+  image: ImageFieldInput
   author: UserRelateToOneForCreateInput
   tags: TagRelateToManyForCreateInput
 }

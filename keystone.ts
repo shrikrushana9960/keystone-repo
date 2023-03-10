@@ -12,25 +12,15 @@ import { lists } from "./schema";
 import downloadImage from "./downloadImage";
 
 import { withAuth, session } from "./auth";
-
+let  baseUrl = 'http://localhost:3000';
 const download = async (context: any) => {
   const downloadPromises = [];
   for (let i = 0; i < 5; i++) {
-    downloadPromises.push(downloadImage());
+    downloadPromises.push(downloadImage(context));
   }
 
   Promise.all(downloadPromises).then(async (results) => {
-    await Promise.all(
-      results.map(async(item: any) => {
-        await context.db.Post.createOne({
-          data:{
-            title:"test2",
-            image:item
-          }
-        })
-        console.log(item);
-      })
-    );
+console.log(results)
   });
 };
 
@@ -46,5 +36,20 @@ export default withAuth(
     },
     lists,
     session,
+    storage:{
+      // The key here will be what is referenced in the image field
+      my_local_images: {
+        // Images that use this store will be stored on the local machine
+        kind: 'local',
+        // This store is used for the image field type
+        type: 'image',
+        // The URL that is returned in the Keystone GraphQL API
+        generateUrl: path => `${baseUrl}/images${path}`,
+        // The route that will be created in Keystone's backend to serve the images
+        serverRoute: {
+          path: '/images',
+        },
+        storagePath: 'public/images',
+      }}
   })
 );

@@ -16,6 +16,7 @@ import {
   password,
   timestamp,
   select,
+  image,
 } from '@keystone-6/core/fields';
 
 // the document field is a more complicated field, so it has it's own package
@@ -87,7 +88,7 @@ export const lists: Lists = {
         dividers: true,
         
       }),
-      image:text(),
+      image:image({ storage: 'my_local_images' }),
       // with this field, you can set a User as the author for a Post
       author: relationship({
         // we could have used 'User', but then the relationship would only be 1-way
