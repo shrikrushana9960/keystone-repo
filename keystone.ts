@@ -10,18 +10,16 @@ import fs from "fs";
 import axios from "axios";
 import { lists } from "./schema";
 import downloadImage from "./downloadImage";
-
+import blobcahc from "./blobcahc"
 import { withAuth, session } from "./auth";
 let  baseUrl = 'http://localhost:3000';
 const download = async (context: any) => {
   const downloadPromises = [];
-  for (let i = 0; i < 5; i++) {
-    downloadPromises.push(downloadImage(context));
-  }
+  // for (let i = 0; i < 5; i++) {
+  //   downloadPromises.push(downloadImage(context));
+  // }
 
-  Promise.all(downloadPromises).then(async (results) => {
-console.log(results)
-  });
+  blobcahc()
 };
 
 export default withAuth(

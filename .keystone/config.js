@@ -153,28 +153,50 @@ var lists = {
   })
 };
 
-// downloadImage.ts
+// blobcahc.ts
+var import_client = require("@apollo/client");
 var import_axios = __toESM(require("axios"));
-var import_fs = __toESM(require("fs"));
-function downloadImage(context) {
-  const apiUrl = `https://source.unsplash.com/random/?Cryptocurrency`;
-  const imageName = Math.floor(Math.random() * 1e3);
-  const imagePath = `./images/${imageName}.jpg`;
-  return import_axios.default.get(apiUrl, { responseType: "arraybuffer" }).then(async (response) => {
-    const buffer = Buffer.from(response.data, "binary");
-    let file = import_fs.default.writeFileSync(imagePath, buffer);
-    await context.db.Post.createOne({
-      data: {
-        title: "test",
-        image: { upload: file }
-      }
+var import_cross_fetch = __toESM(require("cross-fetch"));
+var apolloClient = new import_client.ApolloClient({
+  link: new import_client.HttpLink({
+    uri: "http://localhost:3000/api/graphql",
+    fetch: import_cross_fetch.default
+  }),
+  cache: new import_client.InMemoryCache()
+});
+var apiUrl = `https://source.unsplash.com/random/?Cryptocurrency`;
+var blobcahc = async () => {
+  try {
+    const response = await import_axios.default.get(apiUrl, {
+      responseType: "arraybuffer",
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
     });
-    return imagePath;
-  }).catch((error) => {
+    const file = new Blob([response.data], { type: response.data.type });
+    const fileBuffer = await file.arrayBuffer();
+    const { data } = await apolloClient.mutate({
+      mutation: import_client.gql`
+        mutation UploadImage($file: Upload!) {
+          uploadImage(file: $file) {
+            id
+            filesize
+            width
+            height
+            extension
+            ref
+            url
+          }
+        }
+      `,
+      variables: { file: new Uint8Array(fileBuffer) }
+    });
+    const imageUrl = data.uploadImage.url;
+    console.log(imageUrl);
+  } catch (error) {
     console.log(error);
-    return `Failed to download image ${imageName}`;
-  });
-}
+  }
+};
+var blobcahc_default = blobcahc;
 
 // auth.ts
 var import_crypto = require("crypto");
@@ -213,12 +235,7 @@ var session = (0, import_session.statelessSessions)({
 var baseUrl = "http://localhost:3000";
 var download = async (context) => {
   const downloadPromises = [];
-  for (let i = 0; i < 5; i++) {
-    downloadPromises.push(downloadImage(context));
-  }
-  Promise.all(downloadPromises).then(async (results) => {
-    console.log(results);
-  });
+  blobcahc_default();
 };
 var keystone_default = withAuth(
   (0, import_core2.config)({
